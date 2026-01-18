@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+
+{% block title %}My Account - BCI Simulator{% endblock %}
+
+{% block content %}
+<div class="min-h-screen">
+    <header class="glass-card shadow-lg border-b border-white/10">
+        <div class="container mx-auto px-4 py-4 flex items-center justify-between">
+            <a href="/simulator" class="text-2xl font-bold text-white hover:text-gray-300 transition-colors">
+                BCI Simulator
+            </a>
+            <div class="flex items-center space-x-4">
+                <span class="text-white"><span class="mr-2">👤</span>{{ username }}</span>
+                <a href="/simulator" class="text-white hover:text-gray-300 transition-colors">Back to Simulator</a>
+                <a href="/logout" class="text-white hover:text-gray-300 transition-colors">Log Out</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-12">
+        <h1 class="text-5xl font-bold gradient-text mb-8">My Starred Configurations</h1>
+
+        <div id="starred-results" class="space-y-6">
+            {% if starred_results %}
+                {% for result in starred_results %}
+                <div class="glass-card-strong rounded-2xl shadow-xl overflow-hidden border border-white/10" data-result-id="{{ result.id }}">
+                    <div class="bg-gradient-to-r from-indigo-600 to-purple-600 p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <input type="text" class="result-name bg-transparent text-white text-2xl font-bold border-b-2 border-transparent hover:border-white focus:border-white outline-none transition-colors" 
+                                       value="{{ result.name }}" data-result-id="{{ result.id }}">
+                                <p class="text-gray-200 mt-1">{{ result.modality|upper }} • Saved {{ result.timestamp[:10] }}</p>
+                            </div>
+                            <button class="unstar-btn bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg transition-colors"
+                                    data-result-id="{{ result.id }}">
+                                Unstar
+                            </button>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <div class="grid md:grid-cols-4 gap-4 mb-4">
+                            <div>
+                                <p class="text-sm text-gray-500 mb-1">Electrodes</p>
+                                <p class="text-2xl font-bold text-white">{{ result.parameters.electrodes }}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500 mb-1">Noise Level</p>
+                                <p class="text-2xl font-bold text-white">{{ result.parameters.noise }}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500 mb-1">Training</p>
+                                <p class="text-2xl font-bold text-white">{{ result.parameters.training }}h</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500 mb-1">Accuracy</p>
+                                <p class="text-2xl font-bold text-green-400">{{ result.metrics.accuracy }}%</p>
+                            </div>
+                        </div>
+                        <div class="grid md:grid-cols-3 gap-4">
+                            <div>
+                                <p class="text-sm text-gray-500 mb-1">Latency</p>
+                                <p class="text-lg font-semibold text-white">{{ result.metrics.latency }}ms</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500 mb-1">Invasiveness</p>
+                                <p class="text-lg font-semibold text-white">{{ result.metrics.invasiveness }}/5</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500 mb-1">Cost</p>
+                                <p class="text-lg font-semibold text-white">${{ result.metrics.cost }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="glass-card-strong rounded-2xl shadow-xl p-12 text-center border border-white/10">
+                    <h2 class="text-2xl font-bold text-white mb-2">No Starred Configurations Yet</h2>
+                    <p class="text-gray-400 mb-6">Star your BCI configurations to save and compare them here!</p>
+                    <a href="/simulator" class="inline-block bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold px-8 py-3 rounded-lg transition-colors">
+                        Go to Simulator
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+
+        {% if starred_results and starred_results|length >= 2 %}
+        <div class="mt-12 glass-card-strong rounded-2xl shadow-xl p-8 border border-white/10">
+            <h2 class="text-3xl font-bold text-white mb-6">Compare Configurations</h2>
+            <div class="grid md:grid-cols-2 gap-4 mb-6">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-300 mb-2">Select First Configuration</label>
+                    <select id="compare-select-1" class="w-full px-4 py-2 bg-white/5 border border-white/10 text-white rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                        <option value="">Choose...</option>
+                        {% for result in starred_results %}
+                        <option value="{{ result.id }}">{{ result.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-300 mb-2">Select Second Configuration</label>
+                    <select id="compare-select-2" class="w-full px-4 py-2 bg-white/5 border border-white/10 text-white rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                        <option value="">Choose...</option>
+                        {% for result in starred_results %}
+                        <option value="{{ result.id }}">{{ result.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <button id="compare-btn" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold py-3 rounded-lg transition-all">
+                Compare Configurations
+            </button>
+
+            <div id="comparison-results" class="hidden mt-8">
+                <!-- Populated by JavaScript -->
+            </div>
+        </div>
+        {% endif %}
+    </main>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Unstar functionality
+document.querySelectorAll('.unstar-btn').forEach(btn => {
+    btn.addEventListener('click', async function() {
+        const resultId = this.dataset.resultId;
+        
+        // Create confirmation modal
+        const confirmModal = document.createElement('div');
+        confirmModal.className = 'fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50';
+        confirmModal.innerHTML = `
+            <div class="glass-card-strong rounded-2xl max-w-md w-full mx-4 border border-white/10 p-6">
+                <h3 class="text-xl font-bold text-white mb-4">Remove Configuration?</h3>
+                <p class="text-gray-300 mb-6">Are you sure you want to remove this starred configuration?</p>
+                <div class="flex gap-3">
+                    <button id="confirm-cancel" class="flex-1 bg-white/10 hover:bg-white/20 text-white font-bold py-2 rounded-lg transition-colors">Cancel</button>
+                    <button id="confirm-delete" class="flex-1 bg-red-600 hover:bg-red-500 text-white font-bold py-2 rounded-lg transition-colors">Remove</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(confirmModal);
+        
+        document.getElementById('confirm-cancel').addEventListener('click', () => {
+            confirmModal.remove();
+        });
+        
+        document.getElementById('confirm-delete').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/api/remove-starred-result', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ id: resultId })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    document.querySelector(`[data-result-id="${resultId}"]`).remove();
+                    showToast('Configuration removed', 'success');
+                    confirmModal.remove();
+                    
+                    // Reload if no results left
+                    if (document.querySelectorAll('.unstar-btn').length === 0) {
+                        location.reload();
+                    }
+                }
+            } catch (error) {
+                showToast('Error removing configuration', 'error');
+                confirmModal.remove();
+            }
+        });
+    });
+});
+
+    // Rename functionality
+    document.querySelectorAll('.result-name').forEach(input => {
+        input.addEventListener('blur', async function() {
+            const resultId = this.dataset.resultId;
+            const newName = this.value;
+            
+            try {
+                const response = await fetch('/api/update-result-name', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ id: resultId, name: newName })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    showToast('Name updated', 'success');
+                }
+            } catch (error) {
+                showToast('Error updating name', 'error');
+            }
+        });
+    });
+
+    // Comparison functionality
+    const compareBtn = document.getElementById('compare-btn');
+    if (compareBtn) {
+        compareBtn.addEventListener('click', async function() {
+            const id1 = document.getElementById('compare-select-1').value;
+            const id2 = document.getElementById('compare-select-2').value;
+            
+            if (!id1 || !id2) {
+                showToast('Please select two configurations to compare', 'error');
+                return;
+            }
+            
+            if (id1 === id2) {
+                showToast('Please select different configurations', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/get-starred-results');
+                const data = await response.json();
+                
+                const result1 = data.results.find(r => r.id === id1);
+                const result2 = data.results.find(r => r.id === id2);
+                
+                const comparisonDiv = document.getElementById('comparison-results');
+                comparisonDiv.innerHTML = `
+                    <h3 class="text-2xl font-bold text-white mb-6">Comparison Results</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="border-b-2 border-white/10">
+                                    <th class="text-left py-3 px-4 text-gray-300">Metric</th>
+                                    <th class="text-center py-3 px-4 text-indigo-400">${result1.name}</th>
+                                    <th class="text-center py-3 px-4 text-purple-400">${result2.name}</th>
+                                    <th class="text-center py-3 px-4 text-gray-300">Winner</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-white">
+                                <tr class="border-b border-white/10">
+                                    <td class="py-3 px-4 font-semibold">Method</td>
+                                    <td class="py-3 px-4 text-center">${result1.modality.toUpperCase()}</td>
+                                    <td class="py-3 px-4 text-center">${result2.modality.toUpperCase()}</td>
+                                    <td class="py-3 px-4 text-center">-</td>
+                                </tr>
+                                <tr class="border-b border-white/10 bg-white/5">
+                                    <td class="py-3 px-4 font-semibold">Accuracy</td>
+                                    <td class="py-3 px-4 text-center ${result1.metrics.accuracy > result2.metrics.accuracy ? 'font-bold text-green-400' : ''}">${result1.metrics.accuracy}%</td>
+                                    <td class="py-3 px-4 text-center ${result2.metrics.accuracy > result1.metrics.accuracy ? 'font-bold text-green-400' : ''}">${result2.metrics.accuracy}%</td>
+                                    <td class="py-3 px-4 text-center">${result1.metrics.accuracy > result2.metrics.accuracy ? result1.name : result2.metrics.accuracy > result1.metrics.accuracy ? result2.name : 'Tie'}</td>
+                                </tr>
+                                <tr class="border-b border-white/10">
+                                    <td class="py-3 px-4 font-semibold">Latency (lower is better)</td>
+                                    <td class="py-3 px-4 text-center ${result1.metrics.latency < result2.metrics.latency ? 'font-bold text-green-400' : ''}">${result1.metrics.latency}ms</td>
+                                    <td class="py-3 px-4 text-center ${result2.metrics.latency < result1.metrics.latency ? 'font-bold text-green-400' : ''}">${result2.metrics.latency}ms</td>
+                                    <td class="py-3 px-4 text-center">${result1.metrics.latency < result2.metrics.latency ? result1.name : result2.metrics.latency < result1.metrics.latency ? result2.name : 'Tie'}</td>
+                                </tr>
+                                <tr class="border-b border-white/10 bg-white/5">
+                                    <td class="py-3 px-4 font-semibold">Invasiveness (lower is better)</td>
+                                    <td class="py-3 px-4 text-center ${result1.metrics.invasiveness < result2.metrics.invasiveness ? 'font-bold text-green-400' : ''}">${result1.metrics.invasiveness}/5</td>
+                                    <td class="py-3 px-4 text-center ${result2.metrics.invasiveness < result1.metrics.invasiveness ? 'font-bold text-green-400' : ''}">${result2.metrics.invasiveness}/5</td>
+                                    <td class="py-3 px-4 text-center">${result1.metrics.invasiveness < result2.metrics.invasiveness ? result1.name : result2.metrics.invasiveness < result1.metrics.invasiveness ? result2.name : 'Tie'}</td>
+                                </tr>
+                                <tr class="border-b border-white/10">
+                                    <td class="py-3 px-4 font-semibold">Cost (lower is better)</td>
+                                    <td class="py-3 px-4 text-center ${result1.metrics.cost < result2.metrics.cost ? 'font-bold text-green-400' : ''}">$${result1.metrics.cost}</td>
+                                    <td class="py-3 px-4 text-center ${result2.metrics.cost < result1.metrics.cost ? 'font-bold text-green-400' : ''}">$${result2.metrics.cost}</td>
+                                    <td class="py-3 px-4 text-center">${result1.metrics.cost < result2.metrics.cost ? result1.name : result2.metrics.cost < result1.metrics.cost ? result2.name : 'Tie'}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-6 p-4 glass-card rounded-lg border border-indigo-500/30">
+                        <h4 class="font-bold text-white mb-2">Key Insights:</h4>
+                        <ul class="space-y-2 text-gray-300">
+                            <li>• <strong>${result1.metrics.accuracy > result2.metrics.accuracy ? result1.name : result2.name}</strong> has ${Math.abs(result1.metrics.accuracy - result2.metrics.accuracy)}% higher accuracy</li>
+                            <li>• <strong>${result1.metrics.latency < result2.metrics.latency ? result1.name : result2.name}</strong> is ${Math.abs(result1.metrics.latency - result2.metrics.latency)}ms faster</li>
+                            <li>• <strong>${result1.metrics.cost < result2.metrics.cost ? result1.name : result2.name}</strong> costs $${Math.abs(result1.metrics.cost - result2.metrics.cost)} less</li>
+                        </ul>
+                    </div>
+                `;
+                comparisonDiv.classList.remove('hidden');
+            } catch (error) {
+                showToast('Error comparing configurations', 'error');
+            }
+        });
+    }
+</script>
+{% endblock %}
