@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}Login - BCI Simulator{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center px-4">
+    <div class="max-w-md w-full">
+        <!-- Logo/Title -->
+        <div class="text-center mb-8 fade-in">
+            <h1 class="text-5xl font-bold text-white mb-3">🧠</h1>
+            <h2 class="text-3xl font-bold gradient-text mb-2">BCI Simulator</h2>
+            <p class="text-gray-400">Explore Brain-Computer Interfaces</p>
+        </div>
+        
+        <!-- Login/Register Card -->
+        <div class="glass-card-strong rounded-2xl shadow-2xl p-8 fade-in">
+            <div class="flex border-b border-white/10 mb-6">
+                <button id="login-tab" class="flex-1 py-3 text-center font-semibold text-white border-b-2 border-indigo-400 transition-colors">
+                    Login
+                </button>
+                <button id="register-tab" class="flex-1 py-3 text-center font-semibold text-gray-400 hover:text-white transition-colors">
+                    Register
+                </button>
+            </div>
+            
+            <form id="auth-form">
+                <div class="mb-4">
+                    <label for="username" class="block text-sm font-medium text-gray-300 mb-2">Username</label>
+                    <input type="text" id="username" name="username" required
+                           class="w-full px-4 py-2 bg-white/5 border border-white/10 text-white rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-transparent outline-none transition-all placeholder-gray-500">
+                </div>
+                
+                <div class="mb-6">
+                    <label for="password" class="block text-sm font-medium text-gray-300 mb-2">Password</label>
+                    <input type="password" id="password" name="password" required
+                           class="w-full px-4 py-2 bg-white/5 border border-white/10 text-white rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-transparent outline-none transition-all placeholder-gray-500">
+                </div>
+                
+                <div id="error-message" class="hidden mb-4 p-3 bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg text-sm"></div>
+                
+                <button type="submit" id="submit-btn"
+                        class="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-semibold py-3 rounded-lg transition-all duration-200 transform hover:scale-[1.02]">
+                    Login
+                </button>
+            </form>
+            
+            <div class="mt-6 text-center text-sm text-gray-400">
+                <p id="toggle-text">
+                    Don't have an account? 
+                    <button id="toggle-mode" class="text-indigo-400 hover:text-indigo-300 font-semibold">Register here</button>
+                </p>
+            </div>
+        </div>
+        
+        <!-- Info -->
+        <div class="mt-8 text-center text-gray-500 text-sm fade-in">
+            <p>Educational Brain-Computer Interface Simulator</p>
+            <p class="mt-2">Michelle Xie's Capstone Project</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let isLoginMode = true;
+    const loginTab = document.getElementById('login-tab');
+    const registerTab = document.getElementById('register-tab');
+    const submitBtn = document.getElementById('submit-btn');
+    const toggleText = document.getElementById('toggle-text');
+    const toggleMode = document.getElementById('toggle-mode');
+    const errorMessage = document.getElementById('error-message');
+    const authForm = document.getElementById('auth-form');
+    
+    function switchMode(toLogin) {
+        isLoginMode = toLogin;
+        
+        if (isLoginMode) {
+            loginTab.classList.add('text-white', 'border-b-2', 'border-indigo-400');
+            loginTab.classList.remove('text-gray-400');
+            registerTab.classList.remove('text-white', 'border-b-2', 'border-indigo-400');
+            registerTab.classList.add('text-gray-400');
+            submitBtn.textContent = 'Login';
+            toggleText.innerHTML = 'Don\'t have an account? <button id="toggle-mode" class="text-indigo-400 hover:text-indigo-300 font-semibold">Register here</button>';
+        } else {
+            registerTab.classList.add('text-white', 'border-b-2', 'border-indigo-400');
+            registerTab.classList.remove('text-gray-400');
+            loginTab.classList.remove('text-white', 'border-b-2', 'border-indigo-400');
+            loginTab.classList.add('text-gray-400');
+            submitBtn.textContent = 'Create Account';
+            toggleText.innerHTML = 'Already have an account? <button id="toggle-mode" class="text-indigo-400 hover:text-indigo-300 font-semibold">Login here</button>';
+        }
+        
+        errorMessage.classList.add('hidden');
+        document.getElementById('toggle-mode').addEventListener('click', () => switchMode(!isLoginMode));
+    }
+    
+    loginTab.addEventListener('click', () => switchMode(true));
+    registerTab.addEventListener('click', () => switchMode(false));
+    toggleMode.addEventListener('click', () => switchMode(!isLoginMode));
+    
+    authForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        
+        if (username.length < 3) {
+            errorMessage.textContent = 'Username must be at least 3 characters';
+            errorMessage.classList.remove('hidden');
+            return;
+        }
+        
+        if (password.length < 6) {
+            errorMessage.textContent = 'Password must be at least 6 characters';
+            errorMessage.classList.remove('hidden');
+            return;
+        }
+        
+        try {
+            const response = await fetch('/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    username: username,
+                    password: password,
+                    action: isLoginMode ? 'login' : 'register'
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                window.location.href = data.redirect;
+            } else {
+                errorMessage.textContent = data.message;
+                errorMessage.classList.remove('hidden');
+            }
+        } catch (error) {
+            errorMessage.textContent = 'An error occurred. Please try again.';
+            errorMessage.classList.remove('hidden');
+        }
+    });
+</script>
+{% endblock %}
